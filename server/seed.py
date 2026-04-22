@@ -1,29 +1,32 @@
-from config import app, db
+from config import app, db, bcrypt
 from models import User, Note
-from faker import Faker
-
-fake = Faker()
 
 with app.app_context():
-    print('Deleting old data...')
+    # Clear old data
     Note.query.delete()
     User.query.delete()
     db.session.commit()
 
-    print('Creating users and notes...')
-    for i in range(3):
-        user = User(username=fake.unique.user_name())
-        user.set_password('password123')
-        db.session.add(user)
-        db.session.flush()
+    # Create 2 users
+    hashed = bcrypt.generate_password_hash("password123").decode("utf-8")
 
-        for j in range(4):
-            note = Note(
-                title=fake.sentence(nb_words=4),
-                content=fake.paragraph(nb_sentences=2),
-                user_id=user.id
-            )
-            db.session.add(note)
+    alice = User(username="alice", email="alice@email.com", password=hashed)
+    bob   = User(username="bob",   email="bob@email.com",   password=hashed)
 
+    db.session.add_all([alice, bob])
     db.session.commit()
-    print('Done! Seeded 3 users with 4 notes each.')
+
+    # Give each user 3 notes
+    notes = [
+        Note(title="Alice Note 1", content="Alice's first note.",  user_id=alice.id),
+        Note(title="Alice Note 2", content="Alice's second note.", user_id=alice.id),
+        Note(title="Alice Note 3", content="Alice's third note.",  user_id=alice.id),
+        Note(title="Bob Note 1",   content="Bob's first note.",    user_id=bob.id),
+        Note(title="Bob Note 2",   content="Bob's second note.",   user_id=bob.id),
+        Note(title="Bob Note 3",   content="Bob's third note.",    user_id=bob.id),
+    ]
+
+    db.session.add_all(notes)
+    db.session.commit()
+
+    print("Seeded: 2 users, 6 notes. Password for both is: password123")
